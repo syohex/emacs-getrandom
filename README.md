@@ -10,4 +10,7 @@
 
 ;; Use /dev/random instead of /dev/urandom
 (getrandom 10 'random)
+
+;; Get random number(< 2^32)
+(getrandom-integer)
 ```

@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -61,6 +62,22 @@ Fgetrandom(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
 	return ret;
 }
 
+static emacs_value
+Fgetrandom_integer(emacs_env *env, ptrdiff_t nargs, emacs_value args[], void *data)
+{
+	intmax_t val;
+
+	int n = syscall(SYS_getrandom, &val, sizeof(intmax_t), 0);
+	if (n == -1) {
+		char *errstr = strerror(errno);
+		emacs_value errmsg = env->make_string(env, errstr, strlen(errstr));
+		env->non_local_exit_signal(env, env->intern(env, "error"), errmsg);
+		return env->intern(env, "nil");
+	}
+
+	return env->make_integer(env, val & UINT_MAX);
+}
+
 static void
 bind_function(emacs_env *env, const char *name, emacs_value Sfun)
 {
@@ -90,6 +107,7 @@ emacs_module_init(struct emacs_runtime *ert)
 	bind_function (env, lsym, env->make_function(env, amin, amax, csym, doc, data))
 
 	DEFUN("getrandom", Fgetrandom, 1, 2, NULL, NULL);
+	DEFUN("getrandom-integer", Fgetrandom_integer, 0, 0, NULL, NULL);
 
 #undef DEFUN
 
